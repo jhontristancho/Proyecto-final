@@ -1,10 +1,16 @@
 #ifndef AVION_H
 #define AVION_H
-
-class avion
-{
+#include "Personaje.h"
+class Avion : public Personaje {
+private:
+    float velocidadHorizontal;
+    float suavizado;//para que el movimieno se vea fluido
 public:
-    avion();
+    Avion(float px, float py);
+    void moverDerecha(float dt);
+    void moverIzquierda(float dt);
+    void tomarDanio(int d);
+    void actualizar(float dt) override;
 };
 
-#endif // AVION_H
+#endif

@@ -15,6 +15,7 @@ public:
     void agachar(bool estado);
     void moverDerecha(float dt);
     void moverIzquierda(float dt);
+    void tomarDanio(int d);
     void actualizar(float dt) override;
 };
 

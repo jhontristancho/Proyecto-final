@@ -10,12 +10,14 @@ Soldado::Soldado(float px, float py)
     altoOriginal = alto;
 }
 void Soldado::saltar() {
+    if (!estaVivo()) return;
     if (enSuelo) {
         vy = fuerzaSalto;
         enSuelo = false;
     }
 }
 void Soldado::agachar(bool estado) {
+    if (!estaVivo()) return;
     if (estado && !agachado) {
         agachado = true;
         alto = alto / 2.0f;
@@ -26,12 +28,27 @@ void Soldado::agachar(bool estado) {
     }
 }
 void Soldado::moverDerecha(float dt) {
+    if (!estaVivo()) return;
     x += velocidadHorizontal * dt;
 }
 void Soldado::moverIzquierda(float dt) {
+    if (!estaVivo()) return;
+
     x -= velocidadHorizontal * dt;
 }
+void Soldado::tomarDanio(int d) {
+    if (!estaVivo()) return;
+    recibirDanio(d);
+    if (vida == 0) {//efecto especifico cuando recibe el daño pero solo para soldado
+        vx = 0;
+        vy = 0;
+        agachado = false;
+    }
+}
 void Soldado::actualizar(float dt) {
+    if (!estaVivo()) {
+        return;
+    }
     if (!enSuelo) {
         vy += gravedad * dt;
     }
