@@ -1,6 +1,8 @@
 #ifndef SOLDADO_H
 #define SOLDADO_H
-#include "Personaje.h"
+
+#include "personaje.h"
+
 class Soldado : public Personaje {
 private:
     bool enSuelo;
@@ -9,8 +11,15 @@ private:
     float fuerzaSalto;
     float velocidadHorizontal;
     float altoOriginal;
+
+    float ySuelo;
+
 public:
     Soldado(float px, float py);
+
+    // el controlador/nivel configura el suelo
+    void setSuelo(float y) { ySuelo = y; }
+
     void saltar();
     void agachar(bool estado);
     void moverDerecha(float dt);

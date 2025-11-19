@@ -1,8 +1,6 @@
-#include "Personaje.h"
+#include "personaje.h"
 Personaje::Personaje(float px, float py, float w, float h, int vidaInicial)
-    : x(px), y(py), ancho(w), alto(h), vida(vidaInicial), vx(0), vy(0)
-{
-}
+    : x(px), y(py), vx(0), vy(0), ancho(w), alto(h), vida(vidaInicial) {}
 void Personaje::mover(float dx, float dy) {
     x += dx;
     y += dy;

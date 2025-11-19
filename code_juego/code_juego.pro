@@ -20,6 +20,7 @@ SOURCES += \
     nivel_3.cpp \
     obstaculo.cpp \
     personaje.cpp \
+    proyectil.cpp \
     soldado.cpp \
     tanque.cpp
 
@@ -34,6 +35,7 @@ HEADERS += \
     nivel_3.h \
     obstaculo.h \
     personaje.h \
+    proyectil.h \
     soldado.h \
     tanque.h
 
