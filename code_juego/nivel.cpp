@@ -1,3 +1,3 @@
-#include "nivel.h"
+//#include "nivel.h"
 
-nivel::nivel() {}
+//nivel::nivel() {}
