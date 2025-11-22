@@ -1,7 +1,7 @@
 #include "soldado.h"
 
 Soldado::Soldado(float px, float py)
-    : Personaje(px, py, 32.0f, 48.0f, 100),
+    : Personaje(px, py, 32.0f, 48.0f, 999999),
     enSuelo(true),
     agachado(false),
     gravedad(900.0f),
@@ -25,15 +25,20 @@ void Soldado::agachar(bool estado) {
 
     if (estado && !agachado) {
         agachado = true;
-        float nuevoAlto = alto / 2.0f;
-        // mantener los "pies" en el suelo
-        y += (alto - nuevoAlto);
-        alto = nuevoAlto;
+
+        // Guardamos la posición de los pies antes de cambiar la altura
+        float piesY = y + alto;
+
+        alto = altoOriginal / 2.0f;   // mitad de alto cuando está agachado
+        y    = piesY - alto;          // recolocamos para que los pies se mantengan
+
     } else if (!estado && agachado) {
-        // volver a la altura original manteniendo pies
-        y -= (altoOriginal - alto);
-        alto = altoOriginal;
         agachado = false;
+
+        float piesY = y + alto;
+
+        alto = altoOriginal;          // volvemos a la altura completa
+        y    = piesY - alto;          // y recalculamos la Y de la cabeza
     }
 }
 
@@ -64,14 +69,15 @@ void Soldado::actualizar(float dt) {
 
     if (!enSuelo) {
         vy += gravedad * dt;
-    }
+        y  += vy * dt;
 
-    y += vy * dt;
-
-    // Usar el suelo configurable en vez de 300.0f
-    if (y >= ySuelo) {
-        y = ySuelo;
-        vy = 0.0f;
-        enSuelo = true;
+        // Comprobamos colisión con el suelo usando los "pies"
+        if (y + alto >= ySuelo) {
+            y  = ySuelo - alto;  // cabeza justo donde corresponde
+            vy = 0.0f;
+            enSuelo = true;
+        }
     }
 }
+bool Soldado::estaAgachado() const { return agachado; }
+bool Soldado::estaEnSuelo() const { return enSuelo; }

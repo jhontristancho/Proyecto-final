@@ -2,14 +2,17 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QTimer>            // NUEVO
-#include "nivel.h"           // NUEVO
-#include "controlador_juego.h" // NUEVO :contentReference[oaicite:1]{index=1}
+#include <QTimer>
+#include <QGraphicsScene>
+#include <QGraphicsRectItem>
+#include <vector>
+
+#include "controlador_juego.h"
+#include "nivel.h"
+#include "animaciones.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
+namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -17,21 +20,44 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-protected:                              // NUEVO
-    void keyPressEvent(QKeyEvent *e) override;    // NUEVO
-    void keyReleaseEvent(QKeyEvent *e) override;  // NUEVO
+protected:
+    void keyPressEvent(QKeyEvent *e) override;
+    void keyReleaseEvent(QKeyEvent *e) override;
 
-private slots:                         // NUEVO
-    void actualizarJuego();            // NUEVO
+private slots:
+    void actualizarJuego();
 
 private:
     Ui::MainWindow *ui;
-    QTimer *timer;                     // NUEVO
-    controlador_juego ctrl;            // NUEVO
-    Nivel *nivelActual;                // NUEVO (Nivel1, Nivel2, etc. más adelante)
+
+    QGraphicsScene *scene;
+    QTimer         *timer;
+
+    controlador_juego ctrl;
+    Nivel           *nivelActual;
+
+    // Hitbox lógica del jugador (invisible, útil para depurar)
+    QGraphicsRectItem *rectJugador;
+
+    // Sprites del soldado (TODOS son de la clase genérica animaciones)
+    animaciones *soldadoQuieto;
+    animaciones *soldadoCorriendo;
+    animaciones *soldadoSaltando;
+    animaciones *soldadoAgachado;
+    animaciones *soldadoMuriendo;
+    animaciones *soldadoActual;
+
+    // Obstáculos del Nivel1 (por ahora rectángulos)
+    std::vector<QGraphicsRectItem*> rectObstaculos;
+
+    float xJugadorAnterior; // para saber si se está moviendo
+
+    void ocultarYPararSpritesSoldado();
+    void actualizarSpriteSoldado();
+    void sincronizarObstaculosNivel1();
 };
 
 #endif // MAINWINDOW_H

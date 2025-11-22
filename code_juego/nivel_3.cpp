@@ -205,11 +205,9 @@ void Nivel3::generarObstaculo() {
 
 void Nivel3::manejarColisiones() {
     // 1) Balas del jugador contra obstáculos
-    const auto& balasJugadorConst = jugador.getProyectiles();
+    auto& balasJugador = jugador.getProyectilesMutable();
 
-    for (const auto& balaConst : balasJugadorConst) {
-        auto& bala = const_cast<Proyectil&>(balaConst); // para poder desactivarlo
-
+    for (auto& bala : balasJugador) {
         if (!bala.estaActivo()) continue;
         if (!bala.esAliado())   continue; // por claridad: balas del jugador
 

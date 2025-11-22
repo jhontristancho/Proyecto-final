@@ -14,41 +14,41 @@ Nivel2::Nivel2(float ancho, float alto)
     flagMoverAbajo(false),
     flagDisparar(false)
 {
-    // Límites verticales para el tanque (que no se salga de la escena)
-    float margenSuperior = 80.0f;
-    float margenInferior = altoScene - 80.0f;
-    jugador.setLimitesVerticales(margenSuperior, margenInferior);
-
-    // Límites para el jefe: zona de la derecha
-    float xMinJefe = anchoScene * 0.6f;
-    float xMaxJefe = anchoScene - 80.0f;
-    float yMinJefe = margenSuperior;
-    float yMaxJefe = margenInferior;
-    jefe.setLimitesEscena(xMinJefe, xMaxJefe, yMinJefe, yMaxJefe);
-
-    // Si quisieras tunearlo distinto de los valores por defecto:
-    // jefe.setVelocidadBase(0.0f, 0.0f);           // se moverá solo para esquivar
-    // jefe.setParametrosDisparo(280.0f, 0.7f);     // velocidad bala, cooldown
+    // Configurar límites verticales para tanque y jefe
+    float margen = 80.0f;
+    float yMin = margen;
+    float yMax = altoScene - margen;
+    jugador.setLimitesVerticales(yMin, yMax);
+    jefe.setLimitesVerticales(yMin, yMax);
 }
 
 void Nivel2::reiniciar() {
     jugador = Tanque(150.0f, altoScene / 2.0f);
-    jugador.setLimitesVerticales(80.0f, altoScene - 80.0f);
+    jefe    = Enemigo(anchoScene - 200.0f, altoScene / 2.0f, true);
 
-    jefe = Enemigo(anchoScene - 200.0f, altoScene / 2.0f, true);
-    jefe.setLimitesEscena(anchoScene * 0.6f, anchoScene - 80.0f,
-                          80.0f, altoScene - 80.0f);
+    float margen = 80.0f;
+    float yMin = margen;
+    float yMax = altoScene - margen;
+    jugador.setLimitesVerticales(yMin, yMax);
+    jefe.setLimitesVerticales(yMin, yMax);
 
-    gano   = false;
-    perdio = false;
+    gano  = false;
+    perdio= false;
 
     flagMoverArriba = false;
     flagMoverAbajo  = false;
     flagDisparar    = false;
 }
 
-// ------- hooks de entrada -------
+bool Nivel2::haTerminado() const {
+    return gano || perdio;
+}
 
+bool Nivel2::haGanado() const {
+    return gano;
+}
+
+// ---- Hooks de entrada ----
 void Nivel2::moverArribaPresionado(bool presionado) {
     flagMoverArriba = presionado;
 }
@@ -61,19 +61,13 @@ void Nivel2::dispararPresionado(bool presionado) {
     flagDisparar = presionado;
 }
 
-// ------- lógica principal del nivel -------
-
+// ---- Lógica principal ----
 void Nivel2::actualizar(float dt) {
     if (haTerminado())
         return;
 
     actualizarJugador(dt);
-
-    // PERCEPCIÓN: el jefe "ve" las balas del jugador
-    jefe.percibirProyectiles(jugador.getProyectiles());
-
     actualizarEnemigo(dt);
-
     manejarColisiones();
 
     if (!jugador.estaVivo())
@@ -81,16 +75,6 @@ void Nivel2::actualizar(float dt) {
     else if (!jefe.estaVivo())
         gano = true;
 }
-
-bool Nivel2::haTerminado() const {
-    return gano || perdio;
-}
-
-bool Nivel2::haGanado() const {
-    return gano;
-}
-
-// ------- auxiliares internos -------
 
 void Nivel2::actualizarJugador(float dt) {
     if (!jugador.estaVivo())
@@ -102,23 +86,23 @@ void Nivel2::actualizarJugador(float dt) {
         jugador.moverAbajo(dt);
 
     if (flagDisparar)
-        jugador.disparar();   // Tanque respeta su propio cooldown
+        jugador.disparar();
 
-    jugador.actualizar(dt);   // actualiza balas y limpia inactivas
+    jugador.actualizar(dt);
 }
 
 void Nivel2::actualizarEnemigo(float dt) {
-    jefe.actualizar(dt);      // razonar + actuar + disparar + balas (según tu Enemigo)
+    // PERCEPCIÓN: el jefe ve las balas del jugador
+    jefe.percibirProyectiles(jugador.getProyectiles());
+    jefe.actualizar(dt);
 }
 
 void Nivel2::manejarColisiones() {
     // 1) Balas del jugador contra el jefe
-    const auto& balasJugadorConst = jugador.getProyectiles();
-    for (const auto& balaConst : balasJugadorConst) {
-        auto& bala = const_cast<Proyectil&>(balaConst); // solo para poder desactivarla
-
+    auto& balasJugador = jugador.getProyectilesMutable();
+    for (auto& bala : balasJugador) {
         if (!bala.estaActivo()) continue;
-        if (!bala.esAliado())   continue;  // por claridad
+        if (!bala.esAliado())   continue; // balas del jugador
 
         if (bala.colisionaCon(jefe)) {
             jefe.tomarDanio(bala.getDanio());
@@ -130,11 +114,37 @@ void Nivel2::manejarColisiones() {
     auto& balasJefe = jefe.getProyectilesMutable();
     for (auto& bala : balasJefe) {
         if (!bala.estaActivo()) continue;
-        if (bala.esAliado())    continue;  // estas son balas del enemigo
+        if (bala.esAliado())    continue;  // balas enemigas
 
         if (bala.colisionaCon(jugador)) {
             jugador.tomarDanio(bala.getDanio());
             bala.desactivar();
         }
     }
+
+    // 3) Colisión directa tanque ↔ jefe
+    if (colisionRect(jugador, jefe)) {
+        jugador.tomarDanio(40);
+        jefe.tomarDanio(40);
+    }
+}
+
+bool Nivel2::colisionRect(const Personaje& a, const Personaje& b) const {
+    float ax1 = a.getX();
+    float ay1 = a.getY();
+    float ax2 = ax1 + a.getAncho();
+    float ay2 = ay1 + a.getAlto();
+
+    float bx1 = b.getX();
+    float by1 = b.getY();
+    float bx2 = bx1 + b.getAncho();
+    float by2 = by1 + b.getAlto();
+
+    bool noColision =
+        (ax2 < bx1) ||
+        (ax1 > bx2) ||
+        (ay2 < by1) ||
+        (ay1 > by2);
+
+    return !noColision;
 }

@@ -18,7 +18,16 @@ public:
     Soldado(float px, float py);
 
     // el controlador/nivel configura el suelo
-    void setSuelo(float y) { ySuelo = y; }
+    void setSuelo(float y) {
+        ySuelo = y;
+        if (enSuelo) {
+            // recolocamos la Y para que los pies queden justo en el suelo
+            this->y = ySuelo - alto;
+        }
+    }
+    bool estaAgachado() const;
+    bool estaEnSuelo() const;
+
 
     void saltar();
     void agachar(bool estado);

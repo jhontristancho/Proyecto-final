@@ -11,16 +11,17 @@ private:
     float velocidadProyectil;       // Velocidad horizontal del proyectil
     float cooldown;                 // Tiempo entre disparos
     float tiempoDesdeUltDisparo;    // Acumulador de tiempo
+
     std::vector<Proyectil> proyectiles; // Balas disparadas por el tanque
 
-    // Límites verticales donde se puede mover el tanque (en coordenadas Y)
-    float limiteSuperiorY;          // valor mínimo de y
-    float limiteInferiorY;          // valor máximo de y
+    // Límites verticales donde se puede mover el tanque (coordenadas Y)
+    float limiteSuperiorY;
+    float limiteInferiorY;
 
 public:
     Tanque(float px, float py);
 
-    // El controlador o el nivel usarán esto para fijar límites
+    // El nivel configura los límites verticales
     void setLimitesVerticales(float yMin, float yMax) {
         limiteSuperiorY = yMin;
         limiteInferiorY = yMax;
@@ -33,6 +34,7 @@ public:
     void actualizar(float dt) override;
 
     const std::vector<Proyectil>& getProyectiles() const;
+    std::vector<Proyectil>&       getProyectilesMutable();
 };
 
 #endif

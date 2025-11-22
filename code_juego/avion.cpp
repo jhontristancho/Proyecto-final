@@ -2,74 +2,77 @@
 #include <algorithm>
 
 Avion::Avion(float px, float py)
-    : Personaje(px, py, 48.0f, 32.0f, 100),
-    velocidadHorizontal(250.0f),
-    suavizado(0.1f),
+    : Personaje(px, py, 64.0f, 32.0f, 150),
+    velocidadHorizontal(260.0f),
     velocidadProyectil(400.0f),
     cooldown(0.4f),
     tiempoDesdeUltDisparo(0.0f),
-    limiteIzquierdoX(0.0f),    // por defecto como lo tenías
-    limiteDerechoX(1100.0f)    // luego el controlador puede ajustarlo usando anchoScene
+    proyectiles(),
+    limiteIzquierdoX(0.0f),
+    limiteDerechoX(1200.0f)  // valor por defecto, el nivel lo puede ajustar
 {
 }
 
 void Avion::moverDerecha(float dt) {
     if (!estaVivo()) return;
 
-    float objetivo = velocidadHorizontal;         // queremos ir hacia la derecha
-    vx += (objetivo - vx) * suavizado;           // interpola para que se vea suave
+    x += velocidadHorizontal * dt;
+    if (x + ancho > limiteDerechoX) {
+        x = limiteDerechoX - ancho;
+    }
 }
 
 void Avion::moverIzquierda(float dt) {
     if (!estaVivo()) return;
 
-    float objetivo = -velocidadHorizontal;       // queremos ir hacia la izquierda
-    vx += (objetivo - vx) * suavizado;
+    x -= velocidadHorizontal * dt;
+    if (x < limiteIzquierdoX) {
+        x = limiteIzquierdoX;
+    }
 }
 
 void Avion::disparar() {
     if (!estaVivo()) return;
+
+    // respetar cooldown
     if (tiempoDesdeUltDisparo < cooldown)
         return;
 
-    float px = x + ancho;
-    float py = y + alto / 2.0f;
+    float px = x + ancho;        // punta del avión
+    float py = y + alto * 0.5f;  // centro vertical
 
-    proyectiles.emplace_back(px, py, velocidadProyectil, 0.0f, 15, true);
+    Proyectil p(px, py, velocidadProyectil, 0.0f, 20, true);
+    // Si quieres, en Nivel3 puedes llamar p.setLimitesEscena(...),
+    // pero con los límites por defecto también funciona.
+    proyectiles.push_back(p);
+
     tiempoDesdeUltDisparo = 0.0f;
 }
 
 void Avion::tomarDanio(int d) {
     recibirDanio(d);
-    if (!estaVivo()) {
-        // aquí podrías agregar lógica extra cuando el avión muere
-    }
 }
 
 void Avion::actualizar(float dt) {
-    if (!estaVivo()) return;
-
+    // aunque el avión esté muerto, podemos seguir actualizando balas
     tiempoDesdeUltDisparo += dt;
 
-    // Inercia / fricción simple
-    vx *= 0.95f;
-    x  += vx * dt;
-
-    // Limites horizontales configurables
-    if (x < limiteIzquierdoX) x = limiteIzquierdoX;
-    if (x > limiteDerechoX)   x = limiteDerechoX;
-
-    // Actualizar proyectiles
-    for (auto& p : proyectiles)
+    for (auto& p : proyectiles) {
         p.actualizar(dt);
+    }
 
-    // Limpiar proyectiles inactivos
+    // eliminar balas inactivas
     proyectiles.erase(
         std::remove_if(proyectiles.begin(), proyectiles.end(),
-                       [](const Proyectil& p){ return !p.estaActivo(); }),
-        proyectiles.end());
+                       [](const Proyectil& p) { return !p.estaActivo(); }),
+        proyectiles.end()
+        );
 }
 
 const std::vector<Proyectil>& Avion::getProyectiles() const {
+    return proyectiles;
+}
+
+std::vector<Proyectil>& Avion::getProyectilesMutable() {
     return proyectiles;
 }

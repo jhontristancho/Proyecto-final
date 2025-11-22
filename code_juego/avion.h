@@ -7,21 +7,21 @@
 
 class Avion : public Personaje {
 private:
-    float velocidadHorizontal;      // Velocidad objetivo horizontal
-    float suavizado;                // Para que el movimiento se vea fluido
-    float velocidadProyectil;       // Velocidad de las balas
-    float cooldown;                 // Tiempo mínimo entre disparos
-    float tiempoDesdeUltDisparo;    // Acumulador de tiempo desde el último disparo
+    float velocidadHorizontal;      // velocidad de movimiento en X
+    float velocidadProyectil;       // velocidad de las balas
+    float cooldown;                 // tiempo mínimo entre disparos
+    float tiempoDesdeUltDisparo;    // acumulador
+
     std::vector<Proyectil> proyectiles;
 
-    // Límites horizontales donde se puede mover el avión (en X)
+    // límites horizontales donde puede moverse el avión
     float limiteIzquierdoX;
     float limiteDerechoX;
 
 public:
     Avion(float px, float py);
 
-    // El controlador o el nivel usan esto para fijar límites según anchoScene
+    // El nivel configura los límites en X
     void setLimitesX(float xMin, float xMax) {
         limiteIzquierdoX = xMin;
         limiteDerechoX   = xMax;
@@ -33,7 +33,9 @@ public:
     void tomarDanio(int d);
     void actualizar(float dt) override;
 
+    // Proyectiles del avión
     const std::vector<Proyectil>& getProyectiles() const;
+    std::vector<Proyectil>&       getProyectilesMutable();
 };
 
 #endif

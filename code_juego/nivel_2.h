@@ -15,23 +15,15 @@ public:
     void reiniciar() override;
 
     bool haTerminado() const override;
-    bool haGanado() const override;
+    bool haGanado()   const override;
 
     Personaje*       getJugador()       override { return &jugador; }
     const Personaje* getJugador() const override { return &jugador; }
 
-    // Controles que se usan en este nivel:
-    // W / S para mover tanque en Y, I para disparar.
+    // Hooks de entrada que este nivel SÍ usa
     void moverArribaPresionado(bool presionado) override;
     void moverAbajoPresionado(bool presionado) override;
     void dispararPresionado(bool presionado) override;
-
-    // Los demás (izquierda, derecha, salto, agachar) no se usan aquí.
-
-    // Métodos auxiliares para la parte gráfica
-    const Enemigo& getJefe() const { return jefe; }
-    const std::vector<Proyectil>& getBalasJugador() const { return jugador.getProyectiles(); }
-    const std::vector<Proyectil>& getBalasEnemigo() const { return jefe.getProyectiles(); }
 
 private:
     float anchoScene;
@@ -52,6 +44,8 @@ private:
     void actualizarJugador(float dt);
     void actualizarEnemigo(float dt);
     void manejarColisiones();
+
+    bool colisionRect(const Personaje& a, const Personaje& b) const;
 };
 
 #endif // NIVEL2_H

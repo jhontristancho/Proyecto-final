@@ -8,8 +8,8 @@ Nivel1::Nivel1(float ancho, float alto)
     ySuelo(alto - 150.0f),            // suelo un poco por encima del borde inferior
     jugador(100.0f, alto - 150.0f),   // soldado cerca del borde izquierdo
     obstaculos(),
-    tiempoRestante(30.0f),            // 30 segundos de nivel
-    tiempoTotal(30.0f),
+    tiempoRestante(99999990.0f),            // 30 segundos de nivel
+    tiempoTotal(99999990.0f),
     gano(false),
     perdio(false),
     flagMoverIzq(false),
@@ -28,7 +28,7 @@ void Nivel1::reiniciar() {
 
     obstaculos.clear();
 
-    tiempoTotal      = 30.0f;
+    tiempoTotal      = 99999990.0f;
     tiempoRestante   = tiempoTotal;
     gano             = false;
     perdio           = false;
@@ -152,38 +152,50 @@ void Nivel1::generarObstaculo() {
     // x siempre en el borde derecho de la escena
     float x = anchoScene;
 
-    // Distintos tipos de obstáculos (tamaños y velocidades diferentes)
     int tipo = std::rand() % 3;  // 0, 1 o 2
 
     float w, h, vX;
     int   danio;
+    float y;
 
     switch (tipo) {
     case 0:
-        // Bomba estándar
+        // Obstáculo de suelo (para saltar)
         w    = 32.0f;
         h    = 32.0f;
         vX   = -220.0f;
         danio= 20;
+        y    = ySuelo - h;
         break;
+
     case 1:
-        // Obstáculo pequeño y rápido
-        w    = 20.0f;
-        h    = 20.0f;
-        vX   = -320.0f;
-        danio= 10;
+        // Obstáculo alto (para agacharse)
+        w    = 32.0f;
+        h    = 32.0f;
+        vX   = -260.0f;
+        danio= 15;
+        {
+            // Queremos que de pie choque y agachado no.
+            // Altura de pie del soldado: 48 px (en tu constructor)
+            float altoJugador = 48.0f;
+            // delta entre 0.5*alto y 1.0*alto funciona bien; cogemos ~0.75
+            float delta = altoJugador * 0.75f; // ~36 px
+
+            // Esto coloca el obstáculo por encima de la cabeza agachada,
+            // pero dentro de la altura de la cabeza de pie.
+            y = ySuelo - h - delta;
+        }
         break;
+
     default:
-        // Obstáculo grande y lento
+        // Obstáculo grande de suelo (más lento)
         w    = 48.0f;
         h    = 48.0f;
         vX   = -150.0f;
         danio= 30;
+        y    = ySuelo - h;
         break;
     }
-
-    // Se ubica justo "sobre" el suelo
-    float y = ySuelo - h;
 
     Obstaculo o(x, y, w, h, vX, 0.0f, danio);
     o.setLimitesEscena(0.0f, anchoScene, 0.0f, altoScene);

@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/nivel1">
+        <file>soldado/Idle.png</file>
+        <file>soldado/Run.png</file>
+        <file>soldado/saltar.png</file>
+        <file>soldado/agacharse.png</file>
+        <file>soldado/Dead.png</file>
+    </qresource>
+</RCC>

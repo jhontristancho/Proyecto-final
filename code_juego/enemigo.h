@@ -16,68 +16,54 @@ private:
     float velocidadProyectil;
     float cooldown;
     float tiempoDesdeUltDisparo;
+
     std::vector<Proyectil> proyectiles;
 
-    // Inteligencia (para jefe nivel 2)
-    bool  esJefe;
-    int   fase;               // 1, 2, 3 según la vida
-    bool  amenazaDetectada;   // PERCEPCIÓN: ¿hay bala peligrosa cerca?
-    float yAmenaza;           // Y de la bala más peligrosa
-    int   golpesRecibidos;    // APRENDIZAJE: cuántas veces lo han golpeado
-    float velocidadEsquiva;   // APRENDIZAJE: qué tan rápido esquiva
+    bool esJefe;
+    int  fase;
+    int  golpesRecibidos;
 
-    // Límites de escena (opcionales)
-    float limiteIzquierdoX;
-    float limiteDerechoX;
+    // Rango vertical permitido
     float limiteSuperiorY;
     float limiteInferiorY;
 
-public:
-    Enemigo(float px, float py, bool jefe = false);
+    // Parámetros de "IA"
+    float velocidadEsquiva;
+    bool  quiereMoverArriba;
+    bool  quiereMoverAbajo;
 
-    // --- PERCEPCIÓN ---
-    // El nivel le pasa las balas del jugador:
+public:
+    Enemigo(float px, float py, bool jefe);
+
+    void setLimitesVerticales(float yMin, float yMax) {
+        limiteSuperiorY = yMin;
+        limiteInferiorY = yMax;
+    }
+
+    // PERCEPCIÓN: recibe balas del jugador y decide si hay amenaza
     void percibirProyectiles(const std::vector<Proyectil>& balasJugador);
 
-    // --- CONFIGURACIÓN GENERAL ---
-    void setVelocidadBase(float vX, float vY) { velX = vX; velY = vY; }
+    // El jugador le hace daño
+    void tomarDanio(int d);
 
-    void setLimitesEscena(float xMin, float xMax, float yMin, float yMax) {
-        limiteIzquierdoX = xMin;
-        limiteDerechoX   = xMax;
-        limiteSuperiorY  = yMin;
-        limiteInferiorY  = yMax;
-    }
+    // Actualización general (incluye razonamiento, acción, disparo)
+    void actualizar(float dt) override;
 
-    void setParametrosDisparo(float velProj, float cd) {
-        velocidadProyectil = velProj;
-        cooldown           = cd;
-    }
-
-    // --- ACCIÓN + APRENDIZAJE ---
-    void disparar();           // Acción de atacar
-    void tomarDanio(int d);    // Percibe daño y actualiza aprendizaje
-    void actualizar(float dt) override; // Razonamiento + acción + disparo
-
-    const std::vector<Proyectil>& getProyectiles() const { return proyectiles; }
-    std::vector<Proyectil>& getProyectilesMutable()      { return proyectiles; }
-
-    bool esJefeFinal() const        { return esJefe; }
-    int  getFase() const            { return fase; }
-    int  getGolpesRecibidos() const { return golpesRecibidos; }
+    const std::vector<Proyectil>& getProyectiles() const;
+    std::vector<Proyectil>&       getProyectilesMutable();
 
 private:
-    // --- RAZONAMIENTO ---
-    void razonar();          // interpreta amenaza y decide movimiento en Y
+    // RAZONAMIENTO: decide hacia dónde moverse
+    void razonar();
 
-    // --- ACCIÓN ---
-    void actuar(float dt);   // aplica movimiento según la decisión
+    // ACCIÓN: aplica el movimiento
+    void actuar(float dt);
 
-    // --- APRENDIZAJE ---
-    void aprender();         // ajusta velocidadEsquiva según golpesRecibidos
-    void actualizarFase();   // cambia de fase si es jefe
+    // APRENDIZAJE: ajusta parámetros según golpes recibidos
+    void aprender();
+    void actualizarFase();
 
-    // --- SOPORTE ---
+    void disparar();
     void limpiarProyectilesInactivos();
 };
 

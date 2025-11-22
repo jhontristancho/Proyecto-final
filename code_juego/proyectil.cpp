@@ -2,8 +2,26 @@
 #include "personaje.h"
 
 Proyectil::Proyectil(float px, float py, float vX, float vY, int d, bool delJugador)
-    : x(px), y(py), vx(vX), vy(vY), danio(d), activo(true), esDelJugador(delJugador)
+    : x(px),
+    y(py),
+    vx(vX),
+    vy(vY),
+    danio(d),
+    activo(true),
+    esDelJugador(delJugador),
+    // Valores por defecto; luego el nivel puede ajustarlos
+    limiteIzquierdoX(0.0f),
+    limiteDerechoX(1200.0f),
+    limiteSuperiorY(0.0f),
+    limiteInferiorY(800.0f)
 {
+}
+
+void Proyectil::setLimitesEscena(float xMin, float xMax, float yMin, float yMax) {
+    limiteIzquierdoX = xMin;
+    limiteDerechoX   = xMax;
+    limiteSuperiorY  = yMin;
+    limiteInferiorY  = yMax;
 }
 
 void Proyectil::actualizar(float dt) {
@@ -12,9 +30,11 @@ void Proyectil::actualizar(float dt) {
     x += vx * dt;
     y += vy * dt;
 
-    // Límites del mundo: AJUSTAR según resolución de la ventana/juego
-    if (x < 0.0f || x > 1200.0f || y < 0.0f || y > 800.0f)
+    // Si sale fuera de los límites, se desactiva
+    if (x < limiteIzquierdoX || x > limiteDerechoX ||
+        y < limiteSuperiorY  || y > limiteInferiorY) {
         activo = false;
+    }
 }
 
 bool Proyectil::estaActivo() const {
@@ -26,17 +46,22 @@ void Proyectil::desactivar() {
 }
 
 bool Proyectil::colisionaCon(const Personaje& p) const {
-    if (!activo || !p.estaVivo())
-        return false;
+    if (!activo) return false;
 
     float px = p.getX();
     float py = p.getY();
     float pw = p.getAncho();
     float ph = p.getAlto();
 
-    // Proyectil tratado como punto contra AABB del personaje
-    return (x >= px && x <= px + pw &&
-            y >= py && y <= py + ph);
+    float x1 = px;
+    float y1 = py;
+    float x2 = px + pw;
+    float y2 = py + ph;
+
+    bool dentroX = (x >= x1) && (x <= x2);
+    bool dentroY = (y >= y1) && (y <= y2);
+
+    return dentroX && dentroY;
 }
 
 float Proyectil::getX() const {
