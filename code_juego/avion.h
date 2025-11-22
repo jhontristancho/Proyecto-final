@@ -22,7 +22,7 @@ public:
     Avion(float px, float py);
 
     // El controlador o el nivel usan esto para fijar límites según anchoScene
-    void setLimitesHorizontales(float xMin, float xMax) {
+    void setLimitesX(float xMin, float xMax) {
         limiteIzquierdoX = xMin;
         limiteDerechoX   = xMax;
     }
