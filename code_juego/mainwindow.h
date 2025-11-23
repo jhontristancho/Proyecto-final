@@ -6,7 +6,13 @@
 #include <QGraphicsScene>
 #include <QGraphicsRectItem>
 #include <vector>
-
+#include <QGraphicsTextItem>
+#include <QGraphicsRectItem>
+#include <QGraphicsScene>
+#include <QGraphicsRectItem>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsTextItem>
+#include <vector>
 #include "controlador_juego.h"
 #include "nivel.h"
 #include "animaciones.h"
@@ -42,6 +48,17 @@ private:
     // Hitbox lógica del jugador (invisible, útil para depurar)
     QGraphicsRectItem *rectJugador;
 
+    // Sprites de los obstáculos del Nivel 1
+    // Sprites ANIMADOS de los obstáculos del Nivel 1
+    std::vector<animaciones*> spritesObstaculos;  // uno por obstáculo
+
+    // --- HUD ---
+    QGraphicsTextItem *textoTiempo;
+    QGraphicsTextItem *textoVida;
+
+    // Flash rojo cuando el jugador recibe daño
+    QGraphicsRectItem *damageFlash;
+
     // Sprites del soldado (TODOS son de la clase genérica animaciones)
     animaciones *soldadoQuieto;
     animaciones *soldadoCorriendo;
@@ -54,7 +71,12 @@ private:
     std::vector<QGraphicsRectItem*> rectObstaculos;
 
     float xJugadorAnterior; // para saber si se está moviendo
-
+    void actualizarHUDNivel1();
+    void mostrarDamageFlash();
+    QString formatearTiempo(float segundos) const;
+    QGraphicsPixmapItem *fondoItem; // único fondo desplazable
+    float anchoFondo;               // ancho total del fondo
+    void actualizarFondo(float xJugador);
     void ocultarYPararSpritesSoldado();
     void actualizarSpriteSoldado();
     void sincronizarObstaculosNivel1();

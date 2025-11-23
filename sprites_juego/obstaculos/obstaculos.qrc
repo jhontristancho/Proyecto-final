@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/obstaculos">
+        <file>disparo_grande.png</file>
+        <file>disparo_mediano.png</file>
+        <file>disparo_peque.png</file>
+    </qresource>
+</RCC>

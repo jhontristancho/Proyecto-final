@@ -35,6 +35,9 @@ public:
     void moverIzquierda(float dt);
     void tomarDanio(int d);
     void actualizar(float dt) override;
+    int getVida() const { return vida; }
+    float getAltoOriginal() const { return altoOriginal; }
+
 };
 
 #endif

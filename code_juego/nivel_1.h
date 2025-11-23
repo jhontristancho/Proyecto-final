@@ -25,7 +25,15 @@ public:
     void moverDerechaPresionado(bool presionado) override;
     void saltarPresionado(bool presionado) override;
     void agacharPresionado(bool presionado) override;
+    float getTiempoRestante() const { return tiempoRestante; }
+    float getTiempoTotal()    const { return tiempoTotal;    }
 
+    // Acceso de solo lectura al jugador (para HUD)
+    const Soldado& getJugadorConst() const { return jugador; }
+
+    // --- Señal simple de daño para el HUD (flash rojo) ---
+    bool huboDanioReciente() const   { return danoReciente; }
+    void resetDanioReciente()        { danoReciente = false; }
     // Estos no se usan en Nivel1, así que no los sobreescribimos:
     // moverArribaPresionado(...)
     // moverAbajoPresionado(...)
@@ -49,7 +57,7 @@ private:
     float tiempoTotal;
     bool  gano;
     bool  perdio;
-
+bool danoReciente;
     // Flags de entrada
     bool flagMoverIzq;
     bool flagMoverDer;

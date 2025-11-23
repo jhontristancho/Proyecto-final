@@ -5,30 +5,32 @@
 Nivel1::Nivel1(float ancho, float alto)
     : anchoScene(ancho),
     altoScene(alto),
-    ySuelo(alto - 150.0f),            // suelo un poco por encima del borde inferior
-    jugador(100.0f, alto - 150.0f),   // soldado cerca del borde izquierdo
+    // Suelo más arriba (≈60% de la pantalla)
+    ySuelo(alto * 0.6f),
+    // Soldado un poco hacia la izquierda pero no pegado al borde
+    jugador(ancho * 0.1f, ySuelo),
     obstaculos(),
-    tiempoRestante(99999990.0f),            // 30 segundos de nivel
-    tiempoTotal(99999990.0f),
+    tiempoRestante(30.0f),
+    tiempoTotal(30.0f),
     gano(false),
     perdio(false),
     flagMoverIzq(false),
     flagMoverDer(false),
     flagAgachar(false),
-    intervaloSpawn(1.5f),             // nuevo obstáculo cada 1.5 s
-    tiempoDesdeUltSpawn(0.0f)
+    intervaloSpawn(2.0f),
+    tiempoDesdeUltSpawn(0.0f),
+    danoReciente(false)
 {
     jugador.setSuelo(ySuelo);
 }
-
 void Nivel1::reiniciar() {
     // Volver a poner al soldado en la posición inicial
-    jugador = Soldado(100.0f, ySuelo);
+    jugador = Soldado(anchoScene * 0.1f, ySuelo);
     jugador.setSuelo(ySuelo);
 
     obstaculos.clear();
 
-    tiempoTotal      = 99999990.0f;
+    tiempoTotal      = 30.0f;
     tiempoRestante   = tiempoTotal;
     gano             = false;
     perdio           = false;
@@ -37,8 +39,9 @@ void Nivel1::reiniciar() {
     flagMoverDer     = false;
     flagAgachar      = false;
 
-    intervaloSpawn       = 1.5f;
+    intervaloSpawn       = 2.0f;
     tiempoDesdeUltSpawn  = 0.0f;
+    danoReciente         = false;
 }
 
 // -------- hooks de entrada que Nivel1 sí usa --------
@@ -160,38 +163,35 @@ void Nivel1::generarObstaculo() {
 
     switch (tipo) {
     case 0:
-        // Obstáculo de suelo (para saltar)
-        w    = 32.0f;
-        h    = 32.0f;
+        // Obstáculo de suelo (para saltar) - MEDIANO
+        w    = 35.0f;
+        h    = 35.0f;
         vX   = -220.0f;
         danio= 20;
         y    = ySuelo - h;
         break;
 
-    case 1:
-        // Obstáculo alto (para agacharse)
-        w    = 32.0f;
-        h    = 32.0f;
+    case 1: {
+        // Obstáculo alto (para agacharse) - PEQUEÑO
+        w    = 40.0f;
+        h    = 40.0f;
         vX   = -260.0f;
         danio= 15;
-        {
-            // Queremos que de pie choque y agachado no.
-            // Altura de pie del soldado: 48 px (en tu constructor)
-            float altoJugador = 48.0f;
-            // delta entre 0.5*alto y 1.0*alto funciona bien; cogemos ~0.75
-            float delta = altoJugador * 0.75f; // ~36 px
 
-            // Esto coloca el obstáculo por encima de la cabeza agachada,
-            // pero dentro de la altura de la cabeza de pie.
-            y = ySuelo - h - delta;
-        }
-        break;
+        // Queremos que de pie choque y agachado no.
+        float altoJugador = jugador.getAltoOriginal(); // AHORA usamos la altura real de pie
+        float delta = altoJugador * 0.75f;             // entre la cabeza de pie y agachado
+
+        // Esto coloca el obstáculo por encima de la cabeza agachada,
+        // pero dentro de la altura de la cabeza de pie.
+        y = ySuelo - h - delta;
+    } break;
 
     default:
-        // Obstáculo grande de suelo (más lento)
-        w    = 48.0f;
-        h    = 48.0f;
-        vX   = -150.0f;
+        // Obstáculo grande de suelo (más lento) - GRANDE
+        w    = 40.0f;
+        h    = 40.0f;
+        vX   = -170.0f;
         danio= 30;
         y    = ySuelo - h;
         break;
@@ -210,6 +210,9 @@ void Nivel1::verificarColisiones() {
         if (o.colisionaCon(jugador)) {
             jugador.tomarDanio(o.getDanio());
             o.desactivar();
+
+            // marcar que hubo daño para que la GUI muestre el flash
+            danoReciente = true;
         }
     }
 }

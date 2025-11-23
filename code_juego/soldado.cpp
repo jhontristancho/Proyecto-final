@@ -1,7 +1,7 @@
 #include "soldado.h"
 
 Soldado::Soldado(float px, float py)
-    : Personaje(px, py, 32.0f, 48.0f, 999999),
+    : Personaje(px, py, 200.0f, 200.0f, 200),
     enSuelo(true),
     agachado(false),
     gravedad(900.0f),

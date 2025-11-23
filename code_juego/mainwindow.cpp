@@ -28,6 +28,15 @@ const char* RUTA_SOLDADO_RUN    = ":/nivel1/soldado/Run.png";
 const char* RUTA_SOLDADO_JUMP   = ":/nivel1/soldado/saltar.png";
 const char* RUTA_SOLDADO_CROUCH = ":/nivel1/soldado/agacharse.png";
 const char* RUTA_SOLDADO_DEAD   = ":/nivel1/soldado/Dead.png";
+
+constexpr int COLS_OBS_PEQ  = 3; // disparo_peque.png (3 frames)
+constexpr int COLS_OBS_MED  = 4; // disparo_mediano.png (4 frames)
+constexpr int COLS_OBS_GRAN = 3; // disparo_grande.png (3 frames)
+
+// Rutas (asegúrate que coincidan con tu .qrc)
+const char* RUTA_OBS_PEQ  = ":/nivel1/obstaculos/disparo_peque.png";
+const char* RUTA_OBS_MED  = ":/nivel1/obstaculos/disparo_mediano.png";
+const char* RUTA_OBS_GRAN = ":/nivel1/obstaculos/disparo_grande.png";
 }
 
 MainWindow::MainWindow(QWidget *parent)
@@ -45,9 +54,14 @@ MainWindow::MainWindow(QWidget *parent)
     , soldadoMuriendo(nullptr)
     , soldadoActual(nullptr)
     , xJugadorAnterior(0.0f)
+    , fondoItem(nullptr)
+    , anchoFondo(ANCHO_MUNDO)
+
 {
     ui->setupUi(this);
-
+    ui->graphicsView->setGeometry(0, 0, ANCHO_MUNDO, ALTO_MUNDO);
+    setFixedSize(static_cast<int>(ANCHO_MUNDO),
+                 static_cast<int>(ALTO_MUNDO));
     // Escena y vista
     scene->setSceneRect(0, 0, ANCHO_MUNDO, ALTO_MUNDO);
     ui->graphicsView->setScene(scene);
@@ -55,6 +69,25 @@ MainWindow::MainWindow(QWidget *parent)
                                    static_cast<int>(ALTO_MUNDO));
     ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    QPixmap fondo(":/nivel1/soldado/fondo_nivel1.png");  // misma ruta
+    if (!fondo.isNull()) {
+        // Hacemos un fondo 3 veces más ancho que la ventana para tener recorrido.
+        // Si quieres más o menos "camino", cambia el 3.0f.
+        const float factorLargo = 3.0f;
+
+        QPixmap fondoEscalado = fondo.scaled(
+            static_cast<int>(ANCHO_MUNDO * factorLargo),
+            static_cast<int>(ALTO_MUNDO),
+            Qt::IgnoreAspectRatio,
+            Qt::SmoothTransformation
+            );
+
+        anchoFondo = static_cast<float>(fondoEscalado.width());
+
+        fondoItem = scene->addPixmap(fondoEscalado);
+        fondoItem->setZValue(-100);
+        fondoItem->setPos(0, 0);
+    }
 
     // --- Arrancar directamente Nivel 1 para probar ---
     ctrl.jugarNivel(1);
@@ -113,6 +146,27 @@ MainWindow::MainWindow(QWidget *parent)
     soldadoActual = soldadoQuieto;
     soldadoQuieto->setVisible(true);
     soldadoQuieto->iniciar(150); // ms entre frames
+    // --- HUD: tiempo y vidas ---
+    textoTiempo = scene->addText("Tiempo: 00:00");
+    textoTiempo->setDefaultTextColor(Qt::white);
+    textoTiempo->setZValue(1000);
+    textoTiempo->setPos(10, 10);   // esquina superior izquierda
+
+    textoVida = scene->addText("Vida: 0");
+    textoVida->setDefaultTextColor(Qt::white);
+    textoVida->setZValue(1000);
+    textoVida->setPos(10, 40);
+    // --- Damage flash (pantalla roja breve al recibir daño) ---
+    damageFlash = scene->addRect(
+        0, 0,
+        ANCHO_MUNDO,
+        ALTO_MUNDO,
+        QPen(Qt::NoPen),
+        QBrush(QColor(255, 0, 0, 100)) // rojo con algo de transparencia
+        );
+    damageFlash->setZValue(2000);   // por encima de todo
+    damageFlash->setVisible(false);
+
 
     // Timer principal del juego
     connect(timer, SIGNAL(timeout()), this, SLOT(actualizarJuego()));
@@ -130,6 +184,28 @@ MainWindow::~MainWindow()
 // ----------------------------------------------
 // Auxiliares de sprites
 // ----------------------------------------------
+void MainWindow::actualizarFondo(float xJugador)
+{
+    if (!fondoItem)
+        return;
+
+    // Qué tan rápido se mueve el fondo relativo al jugador (parallax)
+    const float factorParallax = 0.2f;
+
+    // Cuánto puede desplazarse el fondo como máximo sin mostrar "fuera de la imagen"
+    float maxScroll = anchoFondo - ANCHO_MUNDO;
+    if (maxScroll <= 0.0f)
+        return;
+
+    // Desplazamiento en bucle (cuando llega al final, vuelve al inicio)
+    float desplaz = std::fmod(xJugador * factorParallax, maxScroll);
+    if (desplaz < 0.0f)
+        desplaz += maxScroll;
+
+    // Posicionamos el fondo de forma que la ventana (0..ANCHO_MUNDO)
+    // vea siempre un trozo continuo de la misma imagen
+    fondoItem->setPos(-desplaz, 0);
+}
 
 void MainWindow::ocultarYPararSpritesSoldado()
 {
@@ -215,6 +291,7 @@ void MainWindow::actualizarSpriteSoldado()
 
 void MainWindow::sincronizarObstaculosNivel1()
 {
+    // Solo nos interesa si el nivel actual es el 1
     if (ctrl.getNumeroNivelActual() != 1)
         return;
 
@@ -222,34 +299,99 @@ void MainWindow::sincronizarObstaculosNivel1()
     if (!n1)
         return;
 
-    // Borrar rectángulos anteriores
-    for (auto *r : rectObstaculos) {
-        scene->removeItem(r);
-        delete r;
-    }
-    rectObstaculos.clear();
-
-    // Crear rectángulos nuevos
     const auto &obs = n1->getObstaculos();
-    for (const auto &o : obs) {
-        if (!o.estaActivo())
-            continue;
 
-        QGraphicsRectItem *ro = scene->addRect(
-            0, 0,
-            o.getAncho(),
-            o.getAlto(),
-            QPen(Qt::red),
-            QBrush(Qt::red)
-            );
-        ro->setPos(o.getX(), o.getY());
-        rectObstaculos.push_back(ro);
+    // 1) Aseguramos que el vector de sprites tenga al menos obs.size() posiciones
+    if (spritesObstaculos.size() < obs.size()) {
+        spritesObstaculos.resize(obs.size(), nullptr);
+    }
+
+    // 2) Para cada obstáculo lógico, aseguramos un sprite animado
+    for (size_t i = 0; i < obs.size(); ++i) {
+        const Obstaculo &o = obs[i];
+
+        if (!o.estaActivo()) {
+            if (spritesObstaculos[i])
+                spritesObstaculos[i]->setVisible(false);
+            continue;
+        }
+
+        // --- Elegir tipo de sprite según tamaño lógico (w, h) ---
+        // --- Elegir tipo de sprite según tamaño lógico (w, h) ---
+        float w = o.getAncho();
+        float h = o.getAlto();
+
+        int tipoDeseado = 0;        // 0 = pequeño, 1 = mediano, 2 = grande
+        const char *ruta = nullptr;
+        int columnas = 1;
+
+        // <= 52  → sprite pequeño (48x48, los obstáculos altos)
+        // <= 80  → sprite mediano (64x64, obstáculos de suelo normales)
+        //  > 80  → sprite grande  (96x96, obstáculos grandes)
+        if (w <= 52.0f && h <= 52.0f) {
+            tipoDeseado = 0;
+            ruta        = RUTA_OBS_PEQ;
+            columnas    = COLS_OBS_PEQ;
+        } else if (w <= 80.0f && h <= 80.0f) {
+            tipoDeseado = 1;
+            ruta        = RUTA_OBS_MED;
+            columnas    = COLS_OBS_MED;
+        } else {
+            tipoDeseado = 2;
+            ruta        = RUTA_OBS_GRAN;
+            columnas    = COLS_OBS_GRAN;
+        }
+
+        // --- Crear o recrear el sprite si no existe o cambia el tipo ---
+        animaciones *sprite = spritesObstaculos[i];
+
+        int tipoActual = -1;
+        if (sprite) {
+            tipoActual = sprite->data(0).toInt(); // usamos data(0) para guardar el tipo
+        }
+
+        if (!sprite || tipoActual != tipoDeseado) {
+            // Si ya había uno pero de otro tipo, lo borramos
+            if (sprite) {
+                scene->removeItem(sprite);
+                delete sprite;
+            }
+
+            // Creamos un nuevo sprite animado para este obstáculo
+            sprite = new animaciones(QString::fromUtf8(ruta), columnas, 1, this);
+            scene->addItem(sprite);
+
+            // Guardamos qué tipo es en data(0)
+            sprite->setData(0, tipoDeseado);
+
+            // Iniciamos animación (puedes ajustar la velocidad)
+            sprite->iniciar(1000); // ms entre frames
+
+            spritesObstaculos[i] = sprite;
+        }
+
+        // --- Hacer el sprite más grande que la hitbox lógica ---
+        const float factorVisual = 2.0f; // súbelo o bájalo si quieres más grande/pequeño
+        sprite->ajustarATamanoLogico(w * factorVisual, h * factorVisual);
+
+        // Posición en el mundo (misma que el obstáculo)
+        sprite->setPos(o.getX(), o.getY());
+        sprite->setZValue(-5);  // delante del fondo, detrás del jugador
+        sprite->setVisible(true);
+    }
+
+    // 3) Si hay sprites sobrantes (porque se eliminaron obstáculos),
+    //    los borramos para no dejar fugas.
+    if (spritesObstaculos.size() > obs.size()) {
+        for (size_t i = obs.size(); i < spritesObstaculos.size(); ++i) {
+            if (spritesObstaculos[i]) {
+                scene->removeItem(spritesObstaculos[i]);
+                delete spritesObstaculos[i];
+            }
+        }
+        spritesObstaculos.resize(obs.size());
     }
 }
-
-// ----------------------------------------------
-// Bucle de juego
-// ----------------------------------------------
 
 void MainWindow::actualizarJuego()
 {
@@ -268,6 +410,9 @@ void MainWindow::actualizarJuego()
     if (p && rectJugador) {
         rectJugador->setPos(p->getX(), p->getY());
         rectJugador->setRect(0, 0, p->getAncho(), p->getAlto());
+        if (p) {
+            actualizarFondo(p->getX());
+        }
     }
 
     // Obstáculos (rectángulos rojos) del nivel 1
@@ -275,6 +420,16 @@ void MainWindow::actualizarJuego()
 
     // Sprite del soldado
     actualizarSpriteSoldado();
+    actualizarHUDNivel1();
+
+    // --- Damage flash si hubo daño en este frame ---
+    if (ctrl.getNumeroNivelActual() == 1) {
+        Nivel1 *n1 = dynamic_cast<Nivel1*>(nivelActual);
+        if (n1 && n1->huboDanioReciente()) {
+            mostrarDamageFlash();
+            n1->resetDanioReciente();
+        }
+    }
 }
 
 // ----------------------------------------------
@@ -349,4 +504,59 @@ void MainWindow::keyReleaseEvent(QKeyEvent *e)
         QMainWindow::keyReleaseEvent(e);
         break;
     }
+}
+QString MainWindow::formatearTiempo(float segundos) const
+{
+    if (segundos < 0.0f)
+        segundos = 0.0f;
+
+    int total = static_cast<int>(segundos + 0.5f);
+    int minutos = total / 60;
+    int segs    = total % 60;
+
+    return QString("%1:%2")
+        .arg(minutos, 2, 10, QLatin1Char('0'))
+        .arg(segs,    2, 10, QLatin1Char('0'));
+}
+void MainWindow::actualizarHUDNivel1()
+{
+    if (!nivelActual)
+        return;
+
+    // Solo si estamos en el Nivel 1
+    if (ctrl.getNumeroNivelActual() != 1)
+        return;
+
+    Nivel1 *n1 = dynamic_cast<Nivel1*>(nivelActual);
+    if (!n1)
+        return;
+
+    // Tiempo
+    float tRestante = n1->getTiempoRestante();
+    if (textoTiempo) {
+        textoTiempo->setPlainText("Tiempo: " + formatearTiempo(tRestante));
+    }
+
+    // Vida del jugador
+    const Soldado &sold = n1->getJugadorConst();
+    // Asumo que Soldado/Personaje tiene getVida() o similar
+    int vida = sold.getVida();  // Si tu getter se llama distinto, ajústalo
+
+    if (textoVida) {
+        textoVida->setPlainText(QString("Vida: %1").arg(vida));
+    }
+}
+void MainWindow::mostrarDamageFlash()
+{
+    if (!damageFlash)
+        return;
+
+    damageFlash->setVisible(true);
+    damageFlash->setOpacity(0.5);  // un poco más intenso
+
+    // Lo ocultamos después de unos milisegundos
+    QTimer::singleShot(120, this, [this]() {
+        if (damageFlash)
+            damageFlash->setVisible(false);
+    });
 }
